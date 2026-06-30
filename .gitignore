@@ -15,6 +15,12 @@ data/*.pkl
 # Model weights
 models/
 models.rar
+*.pth
+saved_models/
+
+# Large local data / experiment binaries (regenerable, too big for GitHub)
+data/data/
+logs/
 
 # Generated output
 bindingdb_generated.csv

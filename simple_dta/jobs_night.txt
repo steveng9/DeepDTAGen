@@ -1,0 +1,17 @@
+# Overnight batch: 3-seed completion + Davis size variants.
+# Format: <logtag>|<train.py args>.  Longest jobs first (KIBA, then BindingDB, then Davis).
+#
+# --- baseline full-size (882K) seed fills: KIBA + BindingDB (seeds 7, 13) ---
+cnn_kiba_s2|--model cnn --dataset kiba --epochs 100 --eval-interval 10 --seed 7 --tag-suffix _s2
+cnn_kiba_s3|--model cnn --dataset kiba --epochs 100 --eval-interval 10 --seed 13 --tag-suffix _s3
+cnn_bindingdb_s2|--model cnn --dataset bindingdb --epochs 100 --eval-interval 10 --seed 7 --tag-suffix _s2
+cnn_bindingdb_s3|--model cnn --dataset bindingdb --epochs 100 --eval-interval 10 --seed 13 --tag-suffix _s3
+#
+# --- Davis size variants (Davis-only per request) ---
+# 512-head (390K): 2 more seeds to reach 3 total (already have seed 4221)
+cnn_davis_h512_s2|--model cnn --dataset davis --epochs 100 --eval-interval 10 --head-dim 512 --seed 7 --tag-suffix _h512_s2
+cnn_davis_h512_s3|--model cnn --dataset davis --epochs 100 --eval-interval 10 --head-dim 512 --seed 13 --tag-suffix _h512_s3
+# NEW depth-cut head (358K): wide 1024 first layer, drop 2nd hidden layer; 3 seeds
+cnn_davis_h1024L1_s1|--model cnn --dataset davis --epochs 100 --eval-interval 10 --head-layers 1 --seed 4221 --tag-suffix _h1024L1_s1
+cnn_davis_h1024L1_s2|--model cnn --dataset davis --epochs 100 --eval-interval 10 --head-layers 1 --seed 7 --tag-suffix _h1024L1_s2
+cnn_davis_h1024L1_s3|--model cnn --dataset davis --epochs 100 --eval-interval 10 --head-layers 1 --seed 13 --tag-suffix _h1024L1_s3

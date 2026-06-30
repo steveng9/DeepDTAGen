@@ -92,7 +92,7 @@ def experiment(FLAGS, dataset, device):
     # Hyperparameters
     BATCH_SIZE = 32
     LR = 0.0002
-    NUM_EPOCHS = 500
+    NUM_EPOCHS = FLAGS.num_epochs
 
     # Print hyperparameters
     print(f"Dataset: {dataset}")
@@ -129,10 +129,13 @@ def experiment(FLAGS, dataset, device):
 
         # Train model
         best_mse = float('inf')
+        eval_interval = min(FLAGS.eval_interval, NUM_EPOCHS)
+        G, P = None, None
         for epoch in range(NUM_EPOCHS):
             model = train(model, device, train_loader, optimizer, mse_f, epoch, train_data, FLAGS)
 
-            if (epoch + 1) % 20 == 0:
+            is_eval_epoch = (epoch + 1) % eval_interval == 0 or epoch == NUM_EPOCHS - 1
+            if is_eval_epoch:
                 # Test model
                 total_loss, lm_loss, kl_loss, mse_loss, test_ci, rm2, auc_values, G, P = test(model, device, test_loader, dataset, FLAGS)
                 filename = f"saved_models/deepdtagen_model_{dataset}.pth"
@@ -149,23 +152,31 @@ def experiment(FLAGS, dataset, device):
                 print(f"AUCs: {', '.join([f'{auc:.4f}' for auc in auc_values])}")
 
         # Save estimated and true labels
-        folder_path = "Affinities/"
-        np.savetxt(folder_path + f"estimated_labels_{dataset}.txt", P)
-        np.savetxt(folder_path + f"true_labels_{dataset}.txt", G)
+        if G is not None and P is not None:
+            folder_path = "Affinities/"
+            np.savetxt(folder_path + f"estimated_labels_{dataset}.txt", P)
+            np.savetxt(folder_path + f"true_labels_{dataset}.txt", G)
 
         logging('Program finished', FLAGS)
 
 if __name__ == "__main__":
-    # Dataset names and device setup
-    datasets = ['davis', 'kiba', 'bindingdb']
-    dataset_idx = int(sys.argv[1])
-    dataset = datasets[dataset_idx]
-    device = torch.device("cuda:" + str(int(sys.argv[2])) if len(sys.argv) > 2 and torch.cuda.is_available() else "cpu")
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('dataset', type=str, choices=['davis', 'kiba', 'bindingdb'])
+    parser.add_argument('--cuda', type=int, default=None, help='GPU index (omit for CPU)')
+    parser.add_argument('--epochs', type=int, default=500, help='Number of training epochs')
+    parser.add_argument('--eval-interval', type=int, default=10, help='Evaluate and checkpoint every N epochs')
+    args = parser.parse_args()
+
+    dataset = args.dataset
+    device = torch.device(f"cuda:{args.cuda}" if args.cuda is not None and torch.cuda.is_available() else "cpu")
 
     # Flags setup
     FLAGS = lambda: None
     FLAGS.log_dir = 'logs'
-    FLAGS.dataset_name = f'dataset_{dataset}'.format(int(time.time()))
+    FLAGS.dataset_name = f'dataset_{dataset}_{int(time.time())}'
+    FLAGS.num_epochs = args.epochs
+    FLAGS.eval_interval = args.eval_interval
 
     # Create necessary directories
     if not os.path.exists(FLAGS.log_dir):

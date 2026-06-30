@@ -9,12 +9,12 @@ import argparse
 from utils import *
 from model import DeepDTAGen
 
-def main(dataset_name):
+def main(dataset_name, model_path_override=None):
     # Setup device
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # Paths
-    model_path = f'models/deepdtagen_model_{dataset_name}.pth'
+    model_path = model_path_override if model_path_override else f'models/deepdtagen_model_{dataset_name}.pth'
     tokenizer_path = f'data/{dataset_name}_tokenizer.pkl'
     test_batch_size = 128
 
@@ -68,9 +68,9 @@ def main(dataset_name):
         spearman_corr = spearman(ground_truth, predicted)
         aupr_value = get_aupr(predicted, ground_truth, aupr_threshold)
 
-        # Calculate AUC values for each threshold
+        # Calculate AUC values for each threshold (uses full accumulated predictions)
         auc_values = [
-            get_auc((predictions.cpu() > threshold).int(), data.y.view(-1, 1).float().cpu())
+            get_auc((total_predict.cpu() > threshold).int(), total_true.cpu())
             for threshold in thresholds
         ]
 
@@ -87,6 +87,7 @@ def main(dataset_name):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Evaluate DeepDTAGen on a dataset.')
     parser.add_argument('--dataset', type=str, required=True, help='Name of the dataset (e.g., kiba, davis, bindingdb)')
+    parser.add_argument('--model-path', type=str, default=None, help='Override model weights path (default: models/deepdtagen_model_{dataset}.pth)')
     args = parser.parse_args()
 
-    main(args.dataset)
+    main(args.dataset, model_path_override=args.model_path)
